@@ -689,3 +689,5 @@ main() {
     log_info "Log saved to $LOG_FILE"
 }
 
+main
+
