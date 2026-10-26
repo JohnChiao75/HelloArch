@@ -8,6 +8,19 @@ A step-by-step Arch Linux installation guide, read with `harch`.
 and remembers the last page you read. The guide is UEFI-only and uses
 `cfdisk`, ext4, GRUB, and NetworkManager.
 
+## One-line install
+
+On the Arch ISO, as root:
+
+```bash
+curl https://helloarch.netlify.app/inst.sh | bash
+harch beginner
+```
+
+`inst.sh` downloads `harch.py` and every page listed in `docs.list`
+from the website. Set `HARCH_BASE_URL` to use another host, or
+`HARCH_MANIFEST` to use another manifest.
+
 ## Install from the repo
 
 ```bash
@@ -27,6 +40,12 @@ PREFIX="$HOME/.local" bash inst.sh
 export PATH="$HOME/.local/bin:$PATH"
 harch beginner
 ```
+
+## Website layout
+
+The site root must serve `index.html`, `inst.sh`, `harch.py`,
+`docs.list`, and `docs/`. `docs.list` lists the pages `inst.sh`
+downloads, one relative path per line.
 
 ## Usage
 
@@ -61,3 +80,7 @@ to use a different pager.
 - `config/greeter` — configure greetd for niri
 - `config/shell` — bash completion, aliases, optional zsh
 - `end` — unmount and reboot
+
+## License
+
+MIT License. Copyright (c) 2026 ListenToRain. See [LICENSE](LICENSE).

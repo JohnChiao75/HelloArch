@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="helloarch — 即刻安装 Arch Linux。UEFI、cfdisk、ext4、GRUB 的分步安装指南。">
+  <meta name="author" content="ListenToRain">
+  <meta name="theme-color" content="#070b10">
+  <link rel="license" href="LICENSE">
+  <title>helloarch — 即刻安装 Arch Linux</title>
+  <style>
+    :root {
+      --bg: #060a0f;
+      --panel: #0b1118;
+      --panel-2: #080d13;
+      --line: #1b2a37;
+      --line-strong: #274154;
+      --text: #d8e3ec;
+      --muted: #7f93a3;
+      --dim: #566b7a;
+      --arch: #1793d1;
+      --arch-bright: #5bc8ff;
+      --green: #7ee787;
+      --green-dim: #3fb950;
+      --amber: #f0b429;
+      --red: #ff5f56;
+      --yellow: #ffbd2e;
+      --green-dot: #27c93f;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+        "Liberation Mono", "Noto Sans Mono CJK SC", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: dark;
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: clamp(14px, 4vw, 44px);
+      overflow-x: hidden;
+      background:
+        radial-gradient(1100px 600px at 12% -8%, rgba(23, 147, 209, 0.18), transparent 62%),
+        radial-gradient(900px 520px at 104% 112%, rgba(126, 231, 135, 0.07), transparent 62%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(23, 147, 209, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23, 147, 209, 0.055) 1px, transparent 1px);
+      background-size: 44px 44px;
+      -webkit-mask-image: radial-gradient(ellipse at 50% 44%, #000 18%, transparent 72%);
+      mask-image: radial-gradient(ellipse at 50% 44%, #000 18%, transparent 72%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.34;
+      mix-blend-mode: overlay;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.018) 0 1px,
+        transparent 1px 3px
+      );
+    }
+
+    ::selection {
+      background: rgba(23, 147, 209, 0.35);
+      color: #fff;
+    }
+
+    .terminal {
+      position: relative;
+      z-index: 1;
+      width: min(1180px, 100%);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(15, 23, 32, 0.97), rgba(8, 13, 19, 0.97));
+      box-shadow:
+        0 34px 90px rgba(0, 0, 0, 0.58),
+        0 0 0 1px rgba(23, 147, 209, 0.06) inset,
+        0 0 80px rgba(23, 147, 209, 0.04);
+      animation: rise 0.6s ease-out both;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.995);
+      }
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #0e1720, #0a1118);
+      user-select: none;
+    }
+
+    .dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .dots span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 10px rgba(255, 95, 86, 0.25);
+    }
+
+    .dots span:nth-child(2) {
+      background: var(--yellow);
+      box-shadow: 0 0 10px rgba(255, 189, 46, 0.2);
+    }
+
+    .dots span:nth-child(3) {
+      background: var(--green-dot);
+      box-shadow: 0 0 10px rgba(39, 201, 63, 0.2);
+    }
+
+    .title {
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+    }
+
+    .meta {
+      margin-left: auto;
+      color: var(--dim);
+      font-size: 0.66rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .terminal-body {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.88fr) minmax(0, 1.12fr);
+    }
+
+    .art-pane {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 22px;
+      padding: 34px 28px;
+      overflow: hidden;
+      border-right: 1px solid var(--line);
+      background:
+        radial-gradient(600px 400px at 18% 18%, rgba(23, 147, 209, 0.12), transparent 70%),
+        linear-gradient(180deg, rgba(10, 17, 24, 0.62), rgba(6, 10, 15, 0.18));
+    }
+
+    .arch {
+      margin: 0;
+      color: var(--arch);
+      font-size: clamp(6.5px, 1.05vw, 11.5px);
+      line-height: 1.08;
+      letter-spacing: 0.02em;
+      white-space: pre;
+      filter: drop-shadow(0 0 22px rgba(23, 147, 209, 0.18));
+    }
+
+    @supports (background-clip: text) or (-webkit-background-clip: text) {
+      .arch {
+        color: transparent;
+        background: linear-gradient(180deg, #7ad9ff 0%, #1793d1 56%, #0b5f8a 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+      }
+    }
+
+    .prompt {
+      margin: 0;
+      color: var(--dim);
+      font-size: 0.76rem;
+      letter-spacing: 0.02em;
+    }
+
+    .prompt .user {
+      color: var(--green);
+    }
+
+    .prompt .path {
+      color: var(--arch-bright);
+    }
+
+    .prompt .sep {
+      margin: 0 2px;
+      color: var(--dim);
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 0.58em;
+      height: 1.05em;
+      vertical-align: -0.16em;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(126, 231, 135, 0.5);
+      animation: blink 1.1s steps(1) infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 40px 44px 36px;
+    }
+
+    .kicker {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-size: 0.7rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(2.1rem, 4.8vw, 4.2rem);
+      font-weight: 700;
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    h1 span {
+      color: var(--arch-bright);
+      text-shadow: 0 0 30px rgba(23, 147, 209, 0.25);
+    }
+
+    .lede {
+      max-width: 54ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(0.86rem, 1.2vw, 0.98rem);
+      line-height: 1.75;
+    }
+
+    .install {
+      margin-top: 30px;
+    }
+
+    .install-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--dim);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      padding: 3px 7px;
+      border: 1px solid rgba(126, 231, 135, 0.25);
+      border-radius: 999px;
+      background: rgba(126, 231, 135, 0.06);
+      color: var(--green);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+    }
+
+    .command {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 12px 12px 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: #05080c;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        0 12px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .command code {
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto;
+      color: var(--green);
+      font-size: clamp(0.76rem, 1.35vw, 0.9rem);
+      white-space: nowrap;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .command code::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .command code::-webkit-scrollbar-thumb {
+      border-radius: 4px;
+      background: var(--line-strong);
+    }
+
+    .copy {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 12px;
+      border: 1px solid rgba(23, 147, 209, 0.45);
+      border-radius: 8px;
+      background: rgba(23, 147, 209, 0.12);
+      color: #9bdcff;
+      font: inherit;
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
+    }
+
+    .copy:hover {
+      border-color: rgba(91, 200, 255, 0.7);
+      background: rgba(23, 147, 209, 0.22);
+    }
+
+    .copy:active {
+      transform: translateY(1px);
+    }
+
+    .copy:focus-visible {
+      outline: 2px solid var(--arch-bright);
+      outline-offset: 2px;
+    }
+
+    .copy svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .copy.copied {
+      border-color: rgba(126, 231, 135, 0.6);
+      background: rgba(126, 231, 135, 0.12);
+      color: var(--green);
+    }
+
+    .copy.failed {
+      border-color: rgba(255, 95, 86, 0.6);
+      background: rgba(255, 95, 86, 0.12);
+      color: #ff9b95;
+    }
+
+    .icon-check {
+      display: none;
+    }
+
+    .copy.copied .icon-copy {
+      display: none;
+    }
+
+    .copy.copied .icon-check {
+      display: inline;
+    }
+
+    .hint {
+      margin: 10px 0 0;
+      color: var(--dim);
+      font-size: 0.74rem;
+      line-height: 1.6;
+    }
+
+    .hint code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      margin-top: 26px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-decoration: none;
+      transition: color 0.18s ease;
+    }
+
+    .link:hover {
+      color: var(--text);
+    }
+
+    .link:focus-visible {
+      outline: 2px solid var(--arch-bright);
+      outline-offset: 3px;
+      border-radius: 3px;
+    }
+
+    .link svg {
+      flex: none;
+      width: 16px;
+      height: 16px;
+      opacity: 0.85;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .chips span {
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--dim);
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 900px) {
+      .terminal-body {
+        grid-template-columns: 1fr;
+      }
+
+      .art-pane {
+        align-items: center;
+        padding: 26px 22px 20px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .arch {
+        font-size: clamp(5.8px, 1.9vw, 10px);
+      }
+
+      .content {
+        padding: 30px 26px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 10px;
+      }
+
+      .terminal {
+        border-radius: 10px;
+      }
+
+      .titlebar {
+        padding: 10px 12px;
+      }
+
+      .meta {
+        display: none;
+      }
+
+      .content {
+        padding: 26px 18px;
+      }
+
+      .install-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .command {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+      }
+
+      .copy {
+        justify-content: center;
+      }
+
+      .links {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .arch {
+        font-size: 5.6px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .arch {
+        font-size: 5.1px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .terminal {
+        animation: none;
+      }
+
+      .cursor {
+        animation: none;
+      }
+
+      .copy {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="terminal" aria-label="helloarch 安装入口">
+    <div class="titlebar">
+      <div class="dots" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="title">helloarch — bash</div>
+      <div class="meta">UEFI / x86_64</div>
+    </div>
+
+    <div class="terminal-body">
+      <aside class="art-pane" aria-hidden="true">
+<pre class="arch">                   -`
+                  .o+`
+                 `ooo/
+                `+oooo:
+               `+oooooo:
+               -+oooooo+:
+             `/:-:++oooo+:
+            `/++++/+++++++:
+           `/++++++++++++++:
+          `/+++ooooooooooooo/`
+         ./ooosssso++osssssso+`
+        .oossssso-````/ossssss+`
+       -osssssso.      :ssssssso.
+      :osssssss/        osssso+++.
+     /ossssssss/        +ssssooo/-
+   `/ossssso+/:-        -:/+osssso+-
+  `+sso+:-`                 `.-/+oso:
+ `++:.                           `-/+/
+ .`                                 `/</pre>
+        <p class="prompt">
+          <span class="user">root@archiso</span><span class="sep">:</span><span class="path">~</span><span class="sep">#</span>
+          <span class="cursor"></span>
+        </p>
+      </aside>
+
+      <section class="content">
+        <p class="kicker">// HELLOARCH</p>
+        <h1>即刻安装 <span>Arch Linux</span></h1>
+        <p class="lede">
+          一份从零开始、可复制粘贴的 Arch Linux 安装指南。
+          UEFI、cfdisk、ext4、GRUB，按步骤走完即可。
+        </p>
+
+        <div class="install">
+          <div class="install-head">
+            <span>在 Arch ISO 的 root shell 中运行</span>
+            <span class="badge">one-line</span>
+          </div>
+          <div class="command">
+            <code id="install-cmd">curl https://helloarch.netlify.app/inst.sh | bash</code>
+            <button class="copy" type="button" aria-label="复制安装命令">
+              <svg class="icon-copy" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="10" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                <path d="M15 9V6.5A1.5 1.5 0 0 0 13.5 5h-7A1.5 1.5 0 0 0 5 6.5v7A1.5 1.5 0 0 0 6.5 15H9" fill="none" stroke="currentColor" stroke-width="1.7"/>
+              </svg>
+              <svg class="icon-check" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="copy-label" aria-live="polite">复制</span>
+            </button>
+          </div>
+          <p class="hint">
+            脚本会把 <code>harch</code> 和文档安装到 <code>/usr/local</code>，然后运行 <code>harch beginner</code>。
+          </p>
+          <noscript>
+            <p class="hint">JavaScript 已禁用；请手动选择上面的命令复制。</p>
+          </noscript>
+        </div>
+
+        <div class="links">
+          <a class="link" href="https://github.com/JohnChiao75/HelloArch" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+            </svg>
+            <span>github.com/JohnChiao75/HelloArch</span>
+          </a>
+          <a class="link" href="LICENSE">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 3.5h7l3 3V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M14 3.5V7h3.5M9 12h6M9 15.5h6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            <span>MIT License · © 2026 ListenToRain</span>
+          </a>
+        </div>
+
+        <div class="chips" aria-label="技术栈">
+          <span>UEFI</span>
+          <span>cfdisk</span>
+          <span>ext4</span>
+          <span>GRUB</span>
+          <span>NetworkManager</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const button = document.querySelector(".copy");
+      const label = button.querySelector(".copy-label");
+      const command = document.getElementById("install-cmd").textContent.trim();
+      const original = label.textContent;
+      let timer;
+
+      async function copyText(value) {
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(value);
+            return true;
+          } catch {
+            // Fall through to the legacy path.
+          }
+        }
+
+        const area = document.createElement("textarea");
+        area.value = value;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.top = "-1000px";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand("copy");
+        area.remove();
+        return ok;
+      }
+
+      button.addEventListener("click", async () => {
+        try {
+          const ok = await copyText(command);
+          if (!ok) {
+            throw new Error("copy failed");
+          }
+          button.classList.add("copied");
+          label.textContent = "已复制";
+        } catch {
+          button.classList.add("failed");
+          label.textContent = "复制失败";
+        }
+
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          button.classList.remove("copied", "failed");
+          label.textContent = original;
+        }, 1800);
+      });
+    })();
+  </script>
+</body>
+</html>
